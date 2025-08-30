@@ -1,0 +1,80 @@
+import React, { useEffect, useState } from "react";
+
+export default function Hangman() {
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [displayWord, setDisplayWord] = useState([]);
+  const [lives, setLives] = useState(6);
+  const [usedLetters, setUsedLetters] = useState([]);
+  const [gameOver, setGameOver] = useState(false);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    fetch("http://codeapi.net.cws18.my-hosting-panel.com/hangman.php")
+      .then((res) => res.json())
+      .then((data) => {
+        const randomQ = data[Math.floor(Math.random() * data.length)];
+        setQuestion(randomQ.Question);
+        setAnswer(randomQ.Answer.toUpperCase());
+        setDisplayWord(randomQ.Answer.replace(/[A-Z]/gi, "_").split(""));
+      });
+  }, []);
+
+  const handleGuess = (letter) => {
+    if (usedLetters.includes(letter) || gameOver) return;
+
+    setUsedLetters([...usedLetters, letter]);
+
+    if (answer.includes(letter)) {
+      const newDisplay = displayWord.map((ch, i) =>
+        answer[i] === letter ? letter : ch
+      );
+      setDisplayWord(newDisplay);
+
+      if (!newDisplay.includes("_")) {
+        setMessage("🎉 You Won!");
+        setGameOver(true);
+      }
+    } else {
+      const newLives = lives - 1;
+      setLives(newLives);
+      if (newLives === 0) {
+        setMessage(`❌ Game Over! The answer was: ${answer}`);
+        setGameOver(true);
+      }
+    }
+  };
+
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+  return (
+    <div className="flex flex-col items-center p-6 font-sans">
+      <h2 className="text-xl font-bold mb-2">Hangman Game</h2>
+      <p className="mb-4 text-gray-600">{question}</p>
+
+      <div className="text-2xl mb-6 tracking-widest">
+        {displayWord.join(" ")}
+      </div>
+
+      <div className="grid grid-cols-7 gap-2 mb-6">
+        {alphabet.map((letter) => (
+          <button
+            key={letter}
+            onClick={() => handleGuess(letter)}
+            disabled={usedLetters.includes(letter) || gameOver}
+            className={`px-3 py-2 rounded-lg border 
+              ${usedLetters.includes(letter) ? "bg-gray-300" : "bg-blue-200"}
+              ${gameOver && "opacity-50 cursor-not-allowed"}
+            `}
+          >
+            {letter}
+          </button>
+        ))}
+      </div>
+
+      <div className="mb-4 text-lg">❤️ Lives: {lives}</div>
+
+      {message && <div className="text-xl font-bold">{message}</div>}
+    </div>
+  );
+}
